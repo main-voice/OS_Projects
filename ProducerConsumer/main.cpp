@@ -94,7 +94,7 @@ struct Producer
         IR->mtxL->wait();
 
         IR->buffer[IR->in] = item;
-        std::cout << "生产者 " << p_id << " 生产产品，位于 " << IR->out << "，进程id为 " << std::this_thread::get_id() << "\n";
+        std::cout << "生产者 " << p_id << " 生产产品，位于 " << IR->in << "，进程id为 " << std::this_thread::get_id() << "\n";
         IR->in = (IR->in + 1) % IR->BUFFER_SIZE;
         IR->counter++;
 
@@ -105,12 +105,12 @@ struct Producer
 
 };
 
-void putTask(Producer* producer, ItemRepo* gItemRepo, const float* idle) {
+void putTask(Producer* producer, ItemRepo* gItemRepo, int speed) {
 
     static int i;
     while (true) {
-        int idlei = *idle;
-        std::this_thread::sleep_for(std::chrono::milliseconds(idlei));
+        //int idlei = *idle;
+        std::this_thread::sleep_for(std::chrono::milliseconds(speed));
         producer->produceItem(gItemRepo, new Item(i++)); // 循环生产 kItemsToProduce 个产品.
     }
 }
@@ -141,10 +141,10 @@ struct Consumer
 
 };
 
-void getTask(Consumer* consumer, ItemRepo* gItemRepo, const float* idle) {
+void getTask(Consumer* consumer, ItemRepo* gItemRepo, int speed) {
     while (true) {
-        int idlei = *idle;
-        std::this_thread::sleep_for(std::chrono::milliseconds(idlei));
+        //int idlei = *idle;
+        std::this_thread::sleep_for(std::chrono::milliseconds(speed));
         delete consumer->consumeItem(gItemRepo); // 消费一个产品.
     }
 }
@@ -168,22 +168,25 @@ int main()
     std::vector<Consumer*> vConsumer{ &C1, &C2, &C3 };
 
     size_t threadNum = 6;
-    const float idle = 1;
+    //const float idle = 1;
     std::vector<std::thread> threads(6);
+
+    int consumeSpeed = 10;//ms
+    int produceSpeed = 10;//ms
 
     // threads[0] = std::thread(&Producer::produceItem, IR);
     for (size_t i = 0; i < threadNum; i++)
     {
-        threads[i] = std::thread(putTask, vProducer[i / 2], IR, &idle);
+        threads[i] = std::thread(putTask, vProducer[i / 2], IR, produceSpeed);
 
         i++;
 
-        threads[i] = std::thread(getTask, vConsumer[i / 2], IR, &idle);
+        threads[i] = std::thread(getTask, vConsumer[i / 2], IR, consumeSpeed);
     }
 
     for (size_t i = 0; i < threadNum; i++)
     {
-        threads[i].detach();
+        threads[i].join();
     }
 
     std::cin.get();
