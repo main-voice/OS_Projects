@@ -107,7 +107,7 @@ struct Producer
 
 void putTask(Producer* producer, ItemRepo* gItemRepo, int speed) {
 
-    static int i;
+    static int i = 0;
     while (true) {
         //int idlei = *idle;
         std::this_thread::sleep_for(std::chrono::milliseconds(speed));
@@ -145,7 +145,8 @@ void getTask(Consumer* consumer, ItemRepo* gItemRepo, int speed) {
     while (true) {
         //int idlei = *idle;
         std::this_thread::sleep_for(std::chrono::milliseconds(speed));
-        delete consumer->consumeItem(gItemRepo); // 消费一个产品.
+        if(consumer->consumeItem(gItemRepo))
+            delete consumer->consumeItem(gItemRepo); // 消费一个产品.
     }
 }
 
@@ -156,38 +157,50 @@ ItemRepo* IR = nullptr;
 
 int main()
 {
-    IR = new ItemRepo(1, 10);
+    IR = new ItemRepo(1, 5);
     Producer P1(101);
     Producer P2(102);
     Producer P3(103);
-    std::vector<Producer*> vProducer{ &P1, &P2, &P3 };
+    Producer P4(104);
+    Producer P5(105);
+    Producer P6(106);
+    std::vector<Producer*> vProducer{ &P1, &P2, &P3, &P4, &P5, &P6 };
 
     Consumer C1(201);
     Consumer C2(202);
     Consumer C3(203);
-    std::vector<Consumer*> vConsumer{ &C1, &C2, &C3 };
+    Consumer C4(204);
+    Consumer C5(205);
+    Consumer C6(206);
+    std::vector<Consumer*> vConsumer{ &C1, &C2, &C3, &C4, &C5, &C6 };
 
     size_t threadNum = 6;
     //const float idle = 1;
-    std::vector<std::thread> threads(6);
+    std::vector<std::thread> threads;
 
     int consumeSpeed = 10;//ms
     int produceSpeed = 10;//ms
 
-    // threads[0] = std::thread(&Producer::produceItem, IR);
-    for (size_t i = 0; i < threadNum; i++)
-    {
-        threads[i] = std::thread(putTask, vProducer[i / 2], IR, produceSpeed);
 
-        i++;
-
-        threads[i] = std::thread(getTask, vConsumer[i / 2], IR, consumeSpeed);
+    for (auto& p : vProducer) {
+        threads.push_back(std::thread(putTask, p, IR, produceSpeed));
+    }
+    for (auto& p : vConsumer) {
+        threads.push_back(std::thread(getTask, p, IR, consumeSpeed));
     }
 
-    for (size_t i = 0; i < threadNum; i++)
+    //// threads[0] = std::thread(&Producer::produceItem, IR);
+    //for (size_t i = 0; i < threadNum; i++)
+    //{
+    //    threads[i] = std::thread(getTask, vConsumer[i / 2], IR, consumeSpeed);
+    //    i++;
+    //    threads[i] = std::thread(putTask, vProducer[i / 2], IR, produceSpeed);
+    //}
+
+   /* for (size_t i = 0; i < threadNum; i++)
     {
         threads[i].join();
-    }
+    }*/
 
     std::cin.get();
 
